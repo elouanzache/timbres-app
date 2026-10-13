@@ -33,6 +33,13 @@ python scripts/identify.py data/index.npz data/photos/demo004_c0_1.jpg
 
 # Vrais timbres depuis Wikimedia Commons (accès réseau requis)
 python scripts/fetch_commons.py data/commons "Stamps of France=France" "Stamps of French Indochina=Indochine" --max 300
+# ou reprendre la liste déjà constituée (2 420 timbres, 16 pays et colonies)
+mkdir -p data/commons && cp jeux/commons/catalog.csv data/commons/ && python scripts/fetch_commons.py data/commons
+
+# DINOv2 ou CLIP (ONNX, Hugging Face) à la place d'EfficientNet
+python scripts/fetch_model.py dinov2-small clip-b16
+python scripts/build_index.py data/demo data/index_dino.npz dinov2-small
+python scripts/evaluate.py data/index_dino.npz data/photos --sans-verif
 
 pytest tests
 ```

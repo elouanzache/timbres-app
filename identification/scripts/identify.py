@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from stampid.embed import Embedder
+from stampid.embed_onnx import make_embedder
 from stampid.index import StampIndex, identify, read_image
 
 
@@ -21,7 +21,7 @@ def main():
     a = p.parse_args()
     index = StampIndex.load(Path(a.index))
     where = {"pays": a.pays} if a.pays else None
-    for rank, m in enumerate(identify(index, Embedder(), read_image(Path(a.photo)), where=where), 1):
+    for rank, m in enumerate(identify(index, make_embedder(index.model), read_image(Path(a.photo)), where=where), 1):
         titre = m.meta.get("titre", "")
         print(f"{rank}. {m.stamp_id:<20} score {m.score:.3f}  {titre}")
 
