@@ -38,11 +38,13 @@ def read_image(path: Path) -> np.ndarray:
 
 
 class StampIndex:
-    def __init__(self, ids, deep, color, meta, root: Path):
+    def __init__(self, ids, deep, color, meta, root: Path, model: str = "efficientnet"):
         self.ids, self.deep, self.color, self.meta, self.root = list(ids), deep, color, meta, Path(root)
+        self.model = model
 
     @classmethod
-    def build(cls, catalog_dir: Path, embedder: Embedder, crop_refs: bool = True, batch: int = 32):
+    def build(cls, catalog_dir: Path, embedder: Embedder, crop_refs: bool = True, batch: int = 32,
+              model: str = "efficientnet"):
         rows = load_catalog(catalog_dir)
         deep, color = [], []
         for i in range(0, len(rows), batch):
@@ -52,19 +54,20 @@ class StampIndex:
             deep.append(d)
             color.append(c)
         meta = {r["id"]: r for r in rows}
-        return cls([r["id"] for r in rows], np.vstack(deep), np.vstack(color), meta, catalog_dir)
+        return cls([r["id"] for r in rows], np.vstack(deep), np.vstack(color), meta, catalog_dir, model)
 
     def save(self, path: Path):
         np.savez_compressed(path, deep=self.deep, color=self.color, ids=np.array(self.ids))
         Path(str(path) + ".meta.json").write_text(
-            json.dumps({"root": str(self.root.resolve()), "stamps": self.meta}, ensure_ascii=False)
+            json.dumps({"root": str(self.root.resolve()), "model": self.model, "stamps": self.meta}, ensure_ascii=False)
         )
 
     @classmethod
     def load(cls, path: Path):
         z = np.load(path)
         meta = json.loads(Path(str(path) + ".meta.json").read_text())
-        return cls(z["ids"].tolist(), z["deep"], z["color"], meta["stamps"], meta["root"])
+        return cls(z["ids"].tolist(), z["deep"], z["color"], meta["stamps"], meta["root"],
+                   meta.get("model", "efficientnet"))
 
     def search(self, deep_q: np.ndarray, color_q: np.ndarray, k: int = 5, where: dict | None = None):
         """Plus proches voisins. `where` filtre sur les métadonnées (ex. pays lu par OCR)."""
